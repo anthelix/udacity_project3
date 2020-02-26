@@ -87,12 +87,12 @@ And below is an example of what the data in a log file, 2018-11-12-events.json, 
 ### To Run
 Steps one-by-one
 
-    1. Update KEY AND SECRET in dwh.cfg
+    1. Update KEY AND SECRET AND your IP(or default 0.0.0.0\0) in dwh.cfg
     
     2. Create Redshift Cluster
         `run commnad avoir` (see My environem
     
-
+    3. Delete Redshift Cluster
 
 ## Worflow
 

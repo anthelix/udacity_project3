@@ -31,6 +31,8 @@ def createCluster():
 
     DWH_IAM_ROLE_NAME      = config.get("IAM_ROLE", "DWH_IAM_ROLE_NAME")
 
+    CIDRIP                 = config.get("EC2", "CIDRIP")
+
 
     param = pd.DataFrame({"Param":
                     ["DWH_CLUSTER_TYPE", "DWH_NUM_NODES", "DWH_NODE_TYPE", "DWH_CLUSTER_IDENTIFIER", "DWH_DB", "DWH_DB_USER", "DWH_DB_PASSWORD", "DWH_PORT", "DWH_IAM_ROLE_NAME"],
@@ -62,8 +64,8 @@ def createCluster():
                             aws_access_key_id=KEY,
                             aws_secret_access_key=SECRET
                         )
-     # functions 
-     # 
+  
+    # 
     print('\n')
     print('   --->> Check an Iam Role <<---   ') 
     createRole(iam, DWH_IAM_ROLE_NAME)
@@ -71,33 +73,39 @@ def createCluster():
 
 
     print('    --->> Check if cluster exists <<---    ')
-    ret = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
+    DWH_ENDPOINT = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
 
-    # print(20*'@')
-    if ret != '-2' and ret != '-1': 
+    if DWH_ENDPOINT != '-2' and DWH_ENDPOINT != '-1': 
         print('Cluster running')
-        print('DWH_ENDPOINT :: {}'.format(ret))
-    # print(20*'%')
+        print('DWH_ENDPOINT :: {}'.format(DWH_ENDPOINT))
 
-    if ret == '-1':
-        ret = lunchCluster(redshift, roleArn, DWH_CLUSTER_TYPE, DWH_NODE_TYPE, DWH_NUM_NODES,DWH_DB, DWH_CLUSTER_IDENTIFIER,DWH_DB_USER,DWH_DB_PASSWORD)
- 
-    # print(20*'#')
+    if DWH_ENDPOINT == '-1':
+        DWH_ENDPOINT = lunchCluster(redshift, roleArn, DWH_CLUSTER_TYPE, DWH_NODE_TYPE, DWH_NUM_NODES,DWH_DB, DWH_CLUSTER_IDENTIFIER,DWH_DB_USER,DWH_DB_PASSWORD)
 
-    while ret == '-2':        
+    while DWH_ENDPOINT == '-2':        
         print('Waiting for cluster to be ready ...')
-        ret = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
-        if ret == '-2':
+        DWH_ENDPOINT = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
+        if DWH_ENDPOINT == '-2':
             time.sleep(10)
         else:
-            print("     Done Cluster Create and running")
+            print("Cluster Created and running")
 
-    return()
+    print('\n')        
+    print('    --->> Connect to the port <<---    ')
+    myClusterProps = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER)['Clusters'][0]       
+    portEc2(ec2, myClusterProps, DWH_PORT)
+
+    print('    --->> Connect to the database <<---    ')
+    conn_string="postgresql://{}:{}@{}:{}/{}".format(DWH_DB_USER, DWH_DB_PASSWORD, DWH_ENDPOINT, DWH_PORT,DWH_DB)
+    print(conn_string)
+    if conn_string:
+        print('Connected to the database {} as {}.'.format(DWH_DB, DWH_DB_USER))
+        print('\n')
+# functions 
 
 def createRole(iam, DWH_IAM_ROLE_NAME):
     '''
     Create IAM role and attaching policy, to allow Redshift clusters to call AWS swevices
-    TODO? create an other function to attach policy and have personnalize IAM role?
     ''' 
     try:
 
@@ -170,7 +178,7 @@ def prettyRedshiftProps(props):
     props=pd.DataFrame(data=x, columns=["Key", "Value"])
     return(print(tabulate(props, headers='keys', tablefmt='rst', showindex=False)))
 
-def clusterTest(redshift, DWH_CLUSTER_IDENTIFIER ):
+def clusterTest(redshift, DWH_CLUSTER_IDENTIFIER):
     clusterCreate= '-2'
     if clusterCreate != '-1':
         try:
@@ -181,16 +189,14 @@ def clusterTest(redshift, DWH_CLUSTER_IDENTIFIER ):
                 prettyRedshiftProps(myClusterProps)
                 print('\n')      
                 return(DWH_ENDPOINT)
-
             elif myClusterProps['ClusterStatus'] == 'creating':
                 return('-2')
             print('Cluster Status : {}'.format(myClusterProps['ClusterStatus']))
         except Exception as e:
-            print('cluster is not on the way')
+            print('Cluster is done, so here we go!')
             print(e)        
             return('-1')
-   
-        
+           
     if clusterCreate == '-2':
         try:
             DWH_ENDPOINT = None
@@ -212,14 +218,15 @@ def portEc2(ec2, myClusterProps, DWH_PORT):
         print(defaultSg)
         defaultSg.authorize_ingress(
             GroupName=defaultSg.group_name,
-            CidrIp='0.0.0.0/0',
+            CidrIp=CIDRIP,
             IpProtocol='TCP',
             FromPort=int(DWH_PORT),
             ToPort=int(DWH_PORT)
         )
     except Exception as e:
-        print(e)
+        print()
     return(defaultSg)
+
 
 
 
