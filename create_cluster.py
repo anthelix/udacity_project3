@@ -244,7 +244,3 @@ def portEc2(ec2, myClusterProps, DWH_PORT):
 if __name__ == "__main__":
     
     createCluster()
-
-    # print('\n\nAll good, commencing ETL.')
-    # Smain(create_table_queries, drop_table_queries)
-    # etl_main(copy_table_queries, insert_table_queries)
