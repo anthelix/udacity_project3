@@ -5,7 +5,7 @@ from tabulate import tabulate
 from time import time
 import pandas as pd
 import configparser 
-import psycopg2 
+# import psycopg2 
 import boto3
 import time
 import json
@@ -31,7 +31,9 @@ def createCluster():
 
     DWH_IAM_ROLE_NAME      = config.get("IAM_ROLE", "DWH_IAM_ROLE_NAME")
 
-    CIDRIP                 = config.get("EC2", "CIDRIP")
+    CIDRIP                 = config.get("EC2", "CIDRIP" )
+    print(20*'#')
+    print(CIDRIP)
 
 
     param = pd.DataFrame({"Param":
@@ -43,6 +45,7 @@ def createCluster():
     print(tabulate(param, headers='keys', tablefmt='rst', showindex=False))
 
     # get client and ressources AWS
+
     ec2 = boto3.resource('ec2', 
                         aws_access_key_id=KEY,
                         aws_secret_access_key=SECRET,
@@ -52,7 +55,6 @@ def createCluster():
                         aws_access_key_id=KEY,
                         aws_secret_access_key=SECRET,
                         region_name="us-west-2")
-
     iam = boto3.client('iam',
                     aws_access_key_id=KEY,
                     aws_secret_access_key=SECRET,
@@ -101,6 +103,11 @@ def createCluster():
     if conn_string:
         print('Connected to the database {} as {}.'.format(DWH_DB, DWH_DB_USER))
         print('\n')
+    return(DWH_ENDPOINT)
+
+
+
+
 # functions 
 
 def createRole(iam, DWH_IAM_ROLE_NAME):
@@ -108,7 +115,6 @@ def createRole(iam, DWH_IAM_ROLE_NAME):
     Create IAM role and attaching policy, to allow Redshift clusters to call AWS swevices
     ''' 
     try:
-
         print('Creating a new Iam Role...')
         dwhRole = iam.create_role(
             Path='/',
@@ -120,21 +126,24 @@ def createRole(iam, DWH_IAM_ROLE_NAME):
                'Principal': {'Service': 'redshift.amazonaws.com'}}],
              'Version': '2012-10-17'})        
         )        
-    except Exception as e:
-        print(e)
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'EntityAlreadyExists':
+            print("User already exists")
+        else:
+            ("Unexpected error: %s" % e)
     
     return()
 
 def attachPolicy(iam, DWH_IAM_ROLE_NAME):
+    '''
+    Attachpolicy to the Iam role
+    '''
     print('\n')
     print('    --->> Attaching Policy <<---    ')
     iam.attach_role_policy(RoleName=DWH_IAM_ROLE_NAME,
                            PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
                           )['ResponseMetadata']['HTTPStatusCode']
-
-    print("Get the IAM role ARN...")
     roleArn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
-    print(roleArn)
     print("Done Create Role")
     print('\n')
     return(roleArn)
@@ -164,8 +173,7 @@ def lunchCluster(redshift,roleArn, DWH_CLUSTER_TYPE, DWH_NODE_TYPE, DWH_NUM_NODE
         print('\n')
         print('    --->> Create cluster beginning... <<---')
     except Exception as e:
-        print(e)
-    
+        print(e)    
     return('-2')
 
 
@@ -192,18 +200,20 @@ def clusterTest(redshift, DWH_CLUSTER_IDENTIFIER):
             elif myClusterProps['ClusterStatus'] == 'creating':
                 return('-2')
             print('Cluster Status : {}'.format(myClusterProps['ClusterStatus']))
-        except Exception as e:
-            print('Cluster is done, so here we go!')
-            print(e)        
-            return('-1')
-           
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ClusterNotFound':
+                print('Cluster is done, so here we go!')          
+                return('-1')
+            else:
+                print ("Unexpected error: %s" % e)
+
+
     if clusterCreate == '-2':
         try:
             DWH_ENDPOINT = None
             myClusterProps = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER)['Clusters'][0]
             DWH_ENDPOINT = myClusterProps['Endpoint']['Address']
-            DWH_ROLE_ARN = myClusterProps['IamRoles'][0]['IamRoleArn']
-                 
+            DWH_ROLE_ARN = myClusterProps['IamRoles'][0]['IamRoleArn']                 
             clusterCreate = '-1'
         except Exception as e:
             clusterCreate = '-2'

@@ -20,6 +20,8 @@ About an ETL pipeline that extracts data from S3, stages them in Redshift, and t
 Note
 The SERIAL command in Postgres is not supported in Redshift. The equivalent in redshift is IDENTITY(0,1), which you can read more on in the Redshift Create Table Docs.
 
+26/02: plutot que de lamcer commande par commande, Ecrire une fonction qui lance tout.
+Dans `myfunction` lancer `create_cluster`, `create_table`, `etl`
 
 
 ### Table of contents
@@ -133,4 +135,13 @@ Steps one-by-one
 ### Queries
 
 ### Web-links
+[Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)
+[AWS Example of distribution Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/c_Distribution_examples.html)
+[Selecting SortedKey](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data.html)
+[AWS Example Selecting Sorted Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data-compare-sort-styles.html)
+[How to load Data in Amazon Redshift](https://www.blendo.co/blog/how-to-load-data-from-mixpanel-to-redshift/
+)
+[Data Types](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)
+[Catch boto3 exceptions](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)
+
 
