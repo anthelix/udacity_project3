@@ -31,13 +31,15 @@ Dans `myfunction` lancer `create_cluster`, `create_table`, `etl`
    - [Getting started](#getting-started)
        - [Dataset EventData](#dataset-eventdata)
    - [Worflow](#worflow)
-   - [Workspace](#workspace)
-      - [My environnemets](#my-environements)
-      - [Discuss about the database](#discuss-about-the-database)
-      - [UML diagram](#uml-diagram)
-      - [Chebotko diagram](#chebotko-diagram)
-      - [Queries](#queries)
-      - [Web-links](#web-links)
+        - [Get the data](#Get-the-data)
+        - [Create a IAM user in redshift with your AWS](#Create-a-IAM-user-in-redshift-with-your-AWS)
+        - [Complete the `dwh.cfg` with parameters](#Complete-the-`dwh.cfg`-with-parameters)
+        - [Create the cluster](#Create-the-cluster)
+        - [Create tables](#Create-tables)
+        - [ETL](#ETL)
+        - [Sparkify Analytical](#Sparkify-Analytical)
+   - [Web-links](#web-links)
+   
 ---
 
 ## About the project
@@ -87,54 +89,146 @@ And below is an example of what the data in a log file, 2018-11-12-events.json, 
 
 
 ### To Run
-Steps one-by-one
 
-    1. Update KEY AND SECRET AND your IP(or default 0.0.0.0\0) in dwh.cfg
+Steps one-by-one  
+0. creat environnemet to work   
+        run  
+
+    1. Update KEY AND SECRET AND your IP(or default 0.0.0.0\0) in dwh.cfg  
     
-    2. Create Redshift Cluster
+    2. Create Redshift Cluster and all tables
         `run commnad avoir` (see My environem
+
+    3. Load data in staging tables and insert data in fact and dimensions tables
+        `run command`
+    
+    4. test with .ypnb
+        queries and explore data
     
     3. Delete Redshift Cluster
+        `run command`
 
 ## Worflow
 
-1. **Create Table Schemas**
+### Get the data
 
-    * Design schemas for fact and dimension tables
-    * Write a SQL `CREATE` statement for each tables in `sql_queries.py`
-    * Complete `create_tables.py` to connect the database and create these tables
-    * Write SQL `DROP` statements
-    * Launch a redshift cluster
-    * Create an IAM role for acces to s3
-    * Add Redshift database and IAM role info in dwh.cfg
-    * Test by running `create_tables.py`
+* Explore data on 'S3 bucket udacity-dend'. 
+    * song_data contains one record(385253 rows), log_data contains few record(31 rows)
+    * get the columns name in song_data  
+        ```
+        ['song_id"', '"num_songs"', '"title"', '"artist_name"', '"artist_latitude"', '"year"', '"duration"', '"artist_id"', '"artist_longitude"', '"artist_location"']
+        ```  
+    * get the columns name in log_data  
+        ```
+        ['artist"', 'auth"', 'firstName"', 'gender"', 'itemInSession"', 'lastName"', 'length"', 'level"', 'location"', 'TX', 'method"', 'page"', 'registration"', 'sessionId"', 'song"', 'status"', 'ts"', 'userAgent"', 'userId"']
+        ```
+### Create a IAM user in redshift with your AWS 
+* "Access by programming"
+* "Attach existing policies directly"
+* "AmazonRedshiftFullAccess" 
+* keep the "Access key Id" and " Secret access key"
 
-2. **Build ETL Pipeline**  
+### Complete the `dwh.cfg` with parameters
+```
+[AWS]
+KEY=<Your Access key Id>
+SECRET=<Your Secret access key>
 
-    * Implement to load data from s3 to staging tables on Redshift
-    * Implement to load data staging tables to analytics tables on Redshift
-    * Test
-    * Delete the Redshift Cluster when finished
+[IAM_ROLE]
+DWH_IAM_ROLE_NAME=dwhRole
+...
+```
+### Create the cluster
+* Create IAM Role
+* Create Redshift Cluster
+* Open ports
 
-3. **Document Process**
+### Create tables
+* Drop tables if exists
+* Create 2 staging tables to load data because Amazon Redshift doesn't support upsert(update or insert). Then join the staging tables in different tables. 
+    * `staging_events` with the log_data files
+    * `staging_songs` with the song_data files
+* Create dimensions tables 
+    * `dimUser`, `dimArtist`, `dimSong` with their PRIMARY KEY as SORTKEY
+    * `dimTime` with its PRIMARY KEY as SORTKEY AND as DISTKEY
+* Create a fact tables `factSongplay` `artist_id` as SORTKEY and `start_time` as DISTKEY
 
-* Discuss the purpose of this database in the context of the startup, Sparkify, and their analytical goals.
-* State and justify database schema design and ETL pipeline.
-* Provide example queries and results for song play analysis.s
+I choose `artist_id` as SORTKEY for the factSongplay table because I need twice for my analytical queries and  `start_time` as DISTKEY for a better distribution on the slices.
 
-## Workspace
+|schema 	|table 	|tableid 	|distkey 	|skew 	|sortkey 	|#sks 	|mbytes 	|pct_of_total 	|enc 	|rows 	|unsorted_rows |pct_unsorted
+|-|-|-|-|-|-|-|-|-|-|-|-|-|
+|public 	|factsongplay 	|100526 	|start_time 	|1.000000| 	artist_id| 	1 	|192 |	0.020000 |	y |	333| 	0.000000| 	0.000000|
+|public| 	staging_events |	100524 	|None |	1.000000 |	None |	0 |	168 |	0.020000 	|y |	8056 |	nan |	nan
+|public |	dimtime| 	100543 	|start_time |	1.000000 |	start_time |	1 |	160 |	0.020000 	|y 	|8023 	|0.000000 |	0.000000
+|public |	dimartist| 	100539 	|None |	1.000000 |	artist_id |	1 |	128 |	0.010000 |	y |	10025 |	0.000000 |	0.000000|
+|public |	dimuser |	100531| 	None |	1.000000 |	user_id |	1 |	128 |	0.010000 |	y |	105 |	0.000000 |	0.000000
+|public |	dimsong |	100535 |	None |	1.000000 |	song_id |	1 |	128 |	0.010000 |	y |	14896 |	0.000000 |	0.000000
+|public |	staging_songs| 	100385 |	None |	1.000000 |	None |	0 |	104 	|0.010000 |	y |	74480 |	nan |	nan
 
-### My environnemets
+#####  Stagings Tables
 
-### Discuss about the database
+|*staging_events*|*staging_songs*|       
+|:-|:-|
+|artist|num_songs
+|auth|artist_id|
+|firstName|artist_latitude|
+|gender|artist_longitude|
+|itemInSession|artist_location|
+|lastName|artist_name|
+|length|song_id|
+|level|title|
+|location|duration|
+|method|year|
+|page|
+|registration|
+|sessionId|
+|song|
+|status|
+|ts|
+|userAgent|
+|userId|
 
-### UML diagram
+##### Fact Table
 
-### Chebotko diagram
+|*songplay*|*Reference Table*|
+|:-|:-|
+|songplay_id|PRIMARY KEY|
+|**start_time**|time table|
+|**user_id**|user table|
+|level||
+|**song_id**|song table|
+|**artist_id**|artist table|
+|session_id||
+|location||
+|user_agent||
 
-### Queries
+##### Dimension  Tables
 
-### Web-links
+|*user*||*song*||*artist*||*time*||
+|:-|:-|:-|:-|:-|:-|:-|:-|
+|**user_id**|Primary KEY|**song_id**|PRIMARY KEY|**artist_id**|PRIMARY KEY|**start_time**|PRIMARY KEY|
+|first_name||title||name||hour||
+|last_name||artist_id||location||day||
+|gender||year||latitude||week||
+|level||duration||longitude||month||
+|||||||year
+|||||||weekday
+
+### ETL
+* Connect to the database in the cluster
+* COPY to load data in staging tables
+* INSERT data in fact and Dim tables
+
+### Sparkify Analytical
+* Connect to the database
+* Explore data in the Udacity-dend Bucket
+* Explore and check staging_songs and staging_events
+* Queries
+    * Explre dimTables and FactTables
+    * Queries for the analytic team
+    * Queries to play with Sortkey and Distkey
+
+## Web-links
 [Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)
 [AWS Example of distribution Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/c_Distribution_examples.html)
 [Selecting SortedKey](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data.html)

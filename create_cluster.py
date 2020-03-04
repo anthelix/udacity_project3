@@ -11,8 +11,12 @@ import time
 import json
 import sys
 
-# load parameters
+
 def createCluster():
+    '''
+    load parameters and create cluster with calls to the others functions
+    '''
+    # load parameters
     config = configparser.ConfigParser() # creer le fichier de configuaration en memoire
     config.read_file(open('dwh.cfg'))
 
@@ -32,9 +36,6 @@ def createCluster():
     DWH_IAM_ROLE_NAME      = config.get("IAM_ROLE", "DWH_IAM_ROLE_NAME")
 
     CIDRIP                 = config.get("EC2", "CIDRIP" )
-    print(20*'#')
-    print(CIDRIP)
-
 
     param = pd.DataFrame({"Param":
                     ["DWH_CLUSTER_TYPE", "DWH_NUM_NODES", "DWH_NODE_TYPE", "DWH_CLUSTER_IDENTIFIER", "DWH_DB", "DWH_DB_USER", "DWH_DB_PASSWORD", "DWH_PORT", "DWH_IAM_ROLE_NAME"],
@@ -55,10 +56,11 @@ def createCluster():
                         aws_access_key_id=KEY,
                         aws_secret_access_key=SECRET,
                         region_name="us-west-2")
+
     iam = boto3.client('iam',
-                    aws_access_key_id=KEY,
-                    aws_secret_access_key=SECRET,
-                    region_name="us-west-2"
+                        aws_access_key_id=KEY,
+                        aws_secret_access_key=SECRET,
+                        region_name="us-west-2"
                     )
 
     redshift = boto3.client('redshift',
@@ -67,12 +69,10 @@ def createCluster():
                             aws_secret_access_key=SECRET
                         )
   
-    # 
+    # Create cluster
     print('\n')
     print('   --->> Check an Iam Role <<---   ') 
-    createRole(iam, DWH_IAM_ROLE_NAME)
-    roleArn=attachPolicy(iam, DWH_IAM_ROLE_NAME)
-
+    roleArn=createRole(iam, DWH_IAM_ROLE_NAME)
 
     print('    --->> Check if cluster exists <<---    ')
     DWH_ENDPOINT = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
@@ -92,21 +92,11 @@ def createCluster():
         else:
             print("Cluster Created and running")
 
+    # connect to the cluster 
     print('\n')        
     print('    --->> Connect to the port <<---    ')
     myClusterProps = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER)['Clusters'][0]       
     portEc2(ec2, myClusterProps, DWH_PORT)
-
-    print('    --->> Connect to the database <<---    ')
-    conn_string="postgresql://{}:{}@{}:{}/{}".format(DWH_DB_USER, DWH_DB_PASSWORD, DWH_ENDPOINT, DWH_PORT,DWH_DB)
-    print(conn_string)
-    if conn_string:
-        print('Connected to the database {} as {}.'.format(DWH_DB, DWH_DB_USER))
-        print('\n')
-    return(DWH_ENDPOINT)
-
-
-
 
 # functions 
 
@@ -114,6 +104,7 @@ def createRole(iam, DWH_IAM_ROLE_NAME):
     '''
     Create IAM role and attaching policy, to allow Redshift clusters to call AWS swevices
     ''' 
+    # Create Iam Role if not exists
     try:
         print('Creating a new Iam Role...')
         dwhRole = iam.create_role(
@@ -131,21 +122,15 @@ def createRole(iam, DWH_IAM_ROLE_NAME):
             print("User already exists")
         else:
             ("Unexpected error: %s" % e)
-    
-    return()
-
-def attachPolicy(iam, DWH_IAM_ROLE_NAME):
-    '''
-    Attachpolicy to the Iam role
-    '''
-    print('\n')
-    print('    --->> Attaching Policy <<---    ')
+            
+    # Attaching Policy
     iam.attach_role_policy(RoleName=DWH_IAM_ROLE_NAME,
                            PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
                           )['ResponseMetadata']['HTTPStatusCode']
-    roleArn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
-    print("Done Create Role")
-    print('\n')
+
+    # Get the IAM role ARN
+    roleArn=iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']          
+    
     return(roleArn)
 
 
@@ -187,6 +172,9 @@ def prettyRedshiftProps(props):
     return(print(tabulate(props, headers='keys', tablefmt='rst', showindex=False)))
 
 def clusterTest(redshift, DWH_CLUSTER_IDENTIFIER):
+    '''
+    Check for the status and if cluster exists
+    '''
     clusterCreate= '-2'
     if clusterCreate != '-1':
         try:
@@ -206,7 +194,6 @@ def clusterTest(redshift, DWH_CLUSTER_IDENTIFIER):
                 return('-1')
             else:
                 print ("Unexpected error: %s" % e)
-
 
     if clusterCreate == '-2':
         try:

@@ -11,7 +11,11 @@ import sys
 
 
 def endOfCluster():
-    config = configparser.ConfigParser() # creer le fichier de configuaration en memoire
+    '''
+    Get parameters, check if cluster then delete it with calls to the others functions
+    '''
+    # load parameters
+    config = configparser.ConfigParser()
     config.read_file(open('dwh.cfg'))
 
     KEY                    = config.get('AWS','KEY')
@@ -92,14 +96,15 @@ def endOfCluster():
     print('\n')
     print('    ---> Cluster check after deleting <---    ')
     # check after deleting
-    myClusterProps = getClusterId(redshift, DWH_CLUSTER_IDENTIFIER)
-    if myClusterProps[0] !='':
-        prettyRedshiftProps(myClusterProps[0])       
-        DWH_ENDPOINT = myClusterProps[1]
-        DWH_ROLE_ARN = myClusterProps[2]
+    testDelete(redshift, DWH_CLUSTER_IDENTIFIER)
+  
+
 
 # Test the cluster status or if exists
 def testDelete(redshift, DWH_CLUSTER_IDENTIFIER):
+    '''
+    Test the cluster status or if exists
+    '''
     clusterDelete = False
     if clusterDelete != True:            
         try:
@@ -116,11 +121,12 @@ def testDelete(redshift, DWH_CLUSTER_IDENTIFIER):
                 return(False)
             elif myClusterProps['ClusterStatus'] == 'deleting':
                 return(False)
-        except Exception as e:
-            print('\n')
-            print('Cluster is deleted!')
-            print(e)        
-            return(True)
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ClusterNotFound':
+                print('Cluster is done! ')          
+                return('-1')
+            else:
+                print ("Unexpected error: %s" % e) 
 
     if clusterDelete == False:
         try:
@@ -134,6 +140,9 @@ def testDelete(redshift, DWH_CLUSTER_IDENTIFIER):
 
 # Delete the iam role
 def deleteRole(iam, DWH_IAM_ROLE_NAME):
+    '''
+    Delete the iam role
+    '''
     print('IAM role is deleting...')
     try:
         iam.detach_role_policy(
@@ -150,6 +159,9 @@ def deleteRole(iam, DWH_IAM_ROLE_NAME):
 
 # Delete the cluster
 def deleteCluster(redshift, DWH_CLUSTER_IDENTIFIER):
+    '''
+    Delete the cluster
+    '''
     print('Cluster is deleting...')
     try:
         redshift.delete_cluster(
@@ -186,5 +198,4 @@ def getClusterId(redshift, DWH_CLUSTER_IDENTIFIER):
 if __name__ == "__main__":
     
     endOfCluster()
-    print('CLUSTER IS DONE')
-
+    
