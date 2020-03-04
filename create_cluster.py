@@ -73,7 +73,7 @@ def createCluster():
     print('\n')
     print('   --->> Check an Iam Role <<---   ') 
     roleArn=createRole(iam, DWH_IAM_ROLE_NAME)
-
+    print(roleArn)
     print('    --->> Check if cluster exists <<---    ')
     DWH_ENDPOINT = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
 
@@ -119,7 +119,7 @@ def createRole(iam, DWH_IAM_ROLE_NAME):
         )        
     except ClientError as e:
         if e.response['Error']['Code'] == 'EntityAlreadyExists':
-            print("User already exists")
+            print("ROle already exists")
         else:
             ("Unexpected error: %s" % e)
             
