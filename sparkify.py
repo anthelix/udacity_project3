@@ -29,6 +29,6 @@ if __name__ == "__main__":
     print('First, check if cluster exists then create it')
     createCluster()
 
-    print('Now, it\'s time for ETL')
+    print('Now, it\'s ready for ETL')
     main()
  

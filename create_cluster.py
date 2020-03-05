@@ -69,11 +69,18 @@ def createCluster():
                             aws_secret_access_key=SECRET
                         )
   
-    # Create cluster
+    # Create roleArn
     print('\n')
     print('   --->> Check an Iam Role <<---   ') 
     roleArn=createRole(iam, DWH_IAM_ROLE_NAME)
-    print(roleArn)
+
+    # Add roleArn in dwh.cfg
+    config.set('IAM_ROLE','ARN', roleArn)
+    with open('dwh.cfg', 'w') as configfile:
+        config.write(configfile)
+
+    # create cluster if not exists
+    print('\n')
     print('    --->> Check if cluster exists <<---    ')
     DWH_ENDPOINT = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
 
@@ -88,7 +95,7 @@ def createCluster():
         print('Waiting for cluster to be ready ...')
         DWH_ENDPOINT = clusterTest(redshift, DWH_CLUSTER_IDENTIFIER)
         if DWH_ENDPOINT == '-2':
-            time.sleep(10)
+            time.sleep(20)
         else:
             print("Cluster Created and running")
 
@@ -153,10 +160,8 @@ def lunchCluster(redshift,roleArn, DWH_CLUSTER_TYPE, DWH_NODE_TYPE, DWH_NUM_NODE
 
             # parameter for role (to allow s3 access)
             IamRoles=[roleArn]
-
         )
         print('\n')
-        print('    --->> Create cluster beginning... <<---')
     except Exception as e:
         print(e)    
     return('-2')
@@ -209,6 +214,9 @@ def clusterTest(redshift, DWH_CLUSTER_IDENTIFIER):
         return(DWH_ENDPOINT)
 
 def portEc2(ec2, myClusterProps, DWH_PORT):
+    '''
+    Open ports to redshift cluster
+    '''
     try:
         vpc = ec2.Vpc(id=myClusterProps['VpcId'])
         defaultSg = list(vpc.security_groups.all())[0]

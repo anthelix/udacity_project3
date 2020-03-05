@@ -3,10 +3,8 @@ from tabulate import tabulate
 from time import time
 import pandas as pd
 import configparser 
-import psycopg2 
 import boto3
 import time
-import json
 import sys
 
 
@@ -27,33 +25,20 @@ def endOfCluster():
 
     DWH_CLUSTER_IDENTIFIER = config.get("DWH","DWH_CLUSTER_IDENTIFIER")
     DWH_DB                 = config.get("DWH","DWH_DB")
-    DWH_DB_USER            = config.get("DWH","DWH_DB_USER")
-    DWH_DB_PASSWORD        = config.get("DWH","DWH_DB_PASSWORD")
-    DWH_PORT               = config.get("DWH","DWH_PORT")
 
     DWH_IAM_ROLE_NAME      = config.get("IAM_ROLE", "DWH_IAM_ROLE_NAME")
 
 
     param = pd.DataFrame({"Param":
-                    ["DWH_CLUSTER_TYPE", "DWH_NUM_NODES", "DWH_NODE_TYPE", "DWH_CLUSTER_IDENTIFIER", "DWH_DB", "DWH_DB_USER", "DWH_DB_PASSWORD", "DWH_PORT", "DWH_IAM_ROLE_NAME"],
+                    ["DWH_CLUSTER_TYPE", "DWH_NUM_NODES", "DWH_NODE_TYPE", "DWH_CLUSTER_IDENTIFIER", "DWH_DB", "DWH_IAM_ROLE_NAME"],
                 "Value":
-                    [DWH_CLUSTER_TYPE, DWH_NUM_NODES, DWH_NODE_TYPE, DWH_CLUSTER_IDENTIFIER, DWH_DB, DWH_DB_USER, DWH_DB_PASSWORD, DWH_PORT, DWH_IAM_ROLE_NAME]
+                    [DWH_CLUSTER_TYPE, DWH_NUM_NODES, DWH_NODE_TYPE, DWH_CLUSTER_IDENTIFIER, DWH_DB, DWH_IAM_ROLE_NAME]
                 })
     print('\n')            
     print('    ---> Parameters <---    ')
     print(tabulate(param, headers='keys', tablefmt='rst', showindex=False))
-
+    
     # get client and ressources AWS
-    ec2 = boto3.resource('ec2', 
-                        aws_access_key_id=KEY,
-                        aws_secret_access_key=SECRET,
-                        region_name="us-west-2")
-
-    s3 = boto3.resource('s3', 
-                        aws_access_key_id=KEY,
-                        aws_secret_access_key=SECRET,
-                        region_name="us-west-2")
-
     iam = boto3.client('iam',
                     aws_access_key_id=KEY,
                     aws_secret_access_key=SECRET,
@@ -71,33 +56,30 @@ def endOfCluster():
     print('\n')
     print('    ---> Cluster status before deleting <---    ')
     if myClusterProps[0] !='':
-        prettyRedshiftProps(myClusterProps[0])
-        DWH_ENDPOINT = myClusterProps[1]
-        DWH_ROLE_ARN = myClusterProps[2]
-        print("You have a point, Cluster exists")
-    else:
-        ("Cluster Doesn't exists")
-    
+        try:
+            prettyRedshiftProps(myClusterProps[0])
+            DWH_ENDPOINT = myClusterProps[1]
+            DWH_ROLE_ARN = myClusterProps[2]
+            print("You have a point, Cluster exists")
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ClusterNotFound':
+                print("Cluster Doesn't exists")
+            else:
+                print ("Unexpected error: %s" % e)
+
 
     print('\n')
-    print('    ---> Cluster deleting <---    ')
     # deleting the cluster
     deleteCluster(redshift, DWH_CLUSTER_IDENTIFIER)
     
     # test the cluster status
     res = testDelete(redshift, DWH_CLUSTER_IDENTIFIER)
     while(res==False):
-            time.sleep(10)
             res = testDelete(redshift, DWH_CLUSTER_IDENTIFIER)
+            time.sleep(20)
     
     # deleting the iam role
     deleteRole(iam, DWH_IAM_ROLE_NAME)
-
-    print('\n')
-    print('    ---> Cluster check after deleting <---    ')
-    # check after deleting
-    testDelete(redshift, DWH_CLUSTER_IDENTIFIER)
-  
 
 
 # Test the cluster status or if exists
@@ -143,6 +125,7 @@ def deleteRole(iam, DWH_IAM_ROLE_NAME):
     '''
     Delete the iam role
     '''
+    print("\n")
     print('IAM role is deleting...')
     try:
         iam.detach_role_policy(
@@ -152,9 +135,11 @@ def deleteRole(iam, DWH_IAM_ROLE_NAME):
         iam.delete_role(
             RoleName=DWH_IAM_ROLE_NAME
         )
-    except ClientError as e:
-        print(e)
-
+    except Exception as e:
+        if e.response['Error']['Code'] == 'NoSuchEntity':
+            print("IamRole Doesn't exists")
+        else:
+            print ("Unexpected error: %s" % e)
     return()
 
 # Delete the cluster
@@ -162,14 +147,16 @@ def deleteCluster(redshift, DWH_CLUSTER_IDENTIFIER):
     '''
     Delete the cluster
     '''
-    print('Cluster is deleting...')
     try:
         redshift.delete_cluster(
             ClusterIdentifier=DWH_CLUSTER_IDENTIFIER,
             SkipFinalClusterSnapshot=True
         )
     except ClientError as e:
-        print(e)
+        if e.response['Error']['Code'] == 'ClusterNotFound':
+            print("Cluster Doesn't exists")
+        else:
+            print ("Unexpected error: %s" % e)
 
 # Display the cluster parameters  
 def prettyRedshiftProps(props):

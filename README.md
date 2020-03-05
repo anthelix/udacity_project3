@@ -1,4 +1,4 @@
-##### Udacity Data Engineering Nanodegree
+a##### Udacity Data Engineering Nanodegree
 
 <img alt="" align="right" width="150" height="150" src = "./image/aws_logo.png" title = "aws logo" alt = "aws logo">  
 </br>
@@ -29,7 +29,8 @@ Dans `myfunction` lancer `create_cluster`, `create_table`, `etl`
    - [About the project](#about-the-project)
    - [Purpose](#purpose)
    - [Getting started](#getting-started)
-       - [Dataset EventData](#dataset-eventdata)
+       - [Dataset](#dataset)
+       - [To run](#To-run)
    - [Worflow](#worflow)
         - [Get the data](#Get-the-data)
         - [Create a IAM user in redshift with your AWS](#Create-a-IAM-user-in-redshift-with-your-AWS)
@@ -89,24 +90,33 @@ And below is an example of what the data in a log file, 2018-11-12-events.json, 
 
 
 ### To Run
+First, Postgres and Anaconda are installed on your computer then we will create a Python environment and its dependencies customized to this project, then create cluster and launch ETL
 
-Steps one-by-one  
-0. creat environnemet to work   
-        run  
+Steps one-by-one
+   
+0. Create environment to work in Anaconda
+    * run `conda create --quiet --yes --name <Your env name> psycopg2 boto3 configparser numpy pandas tabulate botocore`
+    * then `conda install --yes -c conda-forge ipython-sql`
+    * to open do `conda activate <Your env name>
+    * to close `conda deactivate`
+    * to remove the environment `conda remove --name myenv --all`
+    * and check `conda info  --envs`
+    * go in the `sparkify.py` folder
 
-    1. Update KEY AND SECRET AND your IP(or default 0.0.0.0\0) in dwh.cfg  
+1. Update KEY AND SECRET and your IP(or default 0.0.0.0\0) in dwh.cfg  
     
-    2. Create Redshift Cluster and all tables
-        `run commnad avoir` (see My environem
+2. Create Redshift Cluster and all tables
+    run `python sparkify.py`
 
-    3. Load data in staging tables and insert data in fact and dimensions tables
-        `run command`
+3. Load data in staging tables and insert data in fact and dimensions tables
+    run `python etl.py`
     
-    4. test with .ypnb
-        queries and explore data
+4. Test, explore data and run queries with `sparkify_analytic.ypnb` open in Jupyter Notebook
+
+5. In you want remove and re-create the tables, run `create_tables.py`
     
-    3. Delete Redshift Cluster
-        `run command`
+3. Delete Redshift Cluster and Iam role
+    run `python delete_cluster.py`
 
 ## Worflow
 
@@ -227,6 +237,11 @@ I choose `artist_id` as SORTKEY for the factSongplay table because I need twice 
     * Explre dimTables and FactTables
     * Queries for the analytic team
     * Queries to play with Sortkey and Distkey
+
+Example:
+```
+
+```
 
 ## Web-links
 [Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)
