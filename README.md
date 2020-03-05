@@ -286,13 +286,12 @@ pd.read_sql(query, conn_string).style.hide_index()
 
 
 ## Web-links
-[Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)  
-[AWS Example of distribution Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/c_Distribution_examples.html)  
-[Selecting SortedKey](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data.html)  
-[AWS Example Selecting Sorted Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data-compare-sort-styles.html)  
-[How to load Data in Amazon Redshift](https://www.blendo.co/blog/how-to-load-data-from-mixpanel-to-redshift/
-)  
-[Data Types](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)  
-[Catch boto3 exceptions](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)  
+* [Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)  
+* [AWS Example of distribution Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/c_Distribution_examples.html)  
+* [Selecting SortedKey](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data.html)  
+* [AWS Example Selecting Sorted Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data-compare-sort-styles.html)  
+* [How to load Data in Amazon Redshift](https://www.blendo.co/blog/how-to-load-data-from-mixpanel-to-redshift)  
+* [Data Types](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)  
+* [Catch boto3 exceptions](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)  
 
 
