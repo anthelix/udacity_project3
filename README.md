@@ -143,9 +143,24 @@ DWH_IAM_ROLE_NAME=dwhRole
 * Create 2 staging tables to load data because Amazon Redshift doesn't support upsert(update or insert). Then join the staging tables in different tables. 
     * `staging_events` with the log_data files
     * `staging_songs` with the song_data files
+
 * Create dimensions tables 
     * `dimUser`, `dimArtist`, `dimSong` with their PRIMARY KEY as SORTKEY
     * `dimTime` with its PRIMARY KEY as SORTKEY AND as DISTKEY
+        Example :
+    ```
+    time_table_create = ("""CREATE TABLE IF NOT EXISTS dimTime
+    (
+        start_time timestamp NOT NULL PRIMARY KEY DISTKEY SORTKEY,
+        hour int,
+        day int,
+        week int,
+        month int,
+        year int,
+        weekday varchar
+        )
+    """)
+    ```
 * Create a fact tables `factSongplay` `artist_id` as SORTKEY and `start_time` as DISTKEY
 
 I choose `artist_id` as SORTKEY for the factSongplay table because I need twice for my analytical queries and  `start_time` as DISTKEY for a better distribution on the slices.
@@ -212,7 +227,27 @@ I choose `artist_id` as SORTKEY for the factSongplay table because I need twice 
 ### ETL
 * Connect to the database in the cluster
 * COPY to load data in staging tables
+Example:
+```
+staging_songs_copy = (""" copy staging_songs 
+    from 's3://udacity-dend/song_data'
+    credentials 'aws_iam_role={}'
+    region 'us-west-2' compupdate off 
+    JSON 'auto' truncatecolumns;
+""").format(config.get('IAM_ROLE', 'ARN'))
+```
 * INSERT data in fact and Dim tables
+Example: Query to insert data in `dimUser`
+```
+user_table_insert = ("""INSERT INTO dimUser(user_id, first_name, last_name, gender, level)
+    SELECT DISTINCT userId AS user_id,
+                    firstName AS first_name,
+                    lastName AS last_name,
+                    gender,
+                    level
+    FROM staging_events
+    WHERE user_id IS NOT NULL;
+```
 
 ### Sparkify Analytical
 * Connect to the database
