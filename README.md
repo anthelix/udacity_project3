@@ -1,4 +1,4 @@
-a##### Udacity Data Engineering Nanodegree
+##### Udacity Data Engineering Nanodegree
 
 <img alt="" align="right" width="150" height="150" src = "./image/aws_logo.png" title = "aws logo" alt = "aws logo">  
 </br>
@@ -8,21 +8,6 @@ a##### Udacity Data Engineering Nanodegree
 # Project 3 : Data Warehouse
 
 About an ETL pipeline that extracts data from S3, stages them in Redshift, and transforms data into a set of dimensional tables. 
-
-### Todo
-[Udacity: Project Instructions](https://classroom.udacity.com/nanodegrees/nd027/parts/69a25b76-3ebd-4b72-b7cb-03d82da12844/modules/58ff61b9-a54f-496d-b4c7-fa22750f6c76/lessons/b3ce1791-9545-4187-b1fc-1e29cc81f2b0/concepts/14843ffe-212c-464a-b4b6-3f0db421aa32)
-* set an anaconda environement(python3, psycopg2, configparsar, sql_queries) to work in spyder? 
-* vois si meme fichier que dams le projet 1
-* suivre le worflow dans le project instructions.
-
-[Redshift Create Table Docs.](https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html)
-
-Note
-The SERIAL command in Postgres is not supported in Redshift. The equivalent in redshift is IDENTITY(0,1), which you can read more on in the Redshift Create Table Docs.
-
-26/02: plutot que de lamcer commande par commande, Ecrire une fonction qui lance tout.
-Dans `myfunction` lancer `create_cluster`, `create_table`, `etl`
-
 
 ### Table of contents
 
@@ -238,10 +223,32 @@ I choose `artist_id` as SORTKEY for the factSongplay table because I need twice 
     * Queries for the analytic team
     * Queries to play with Sortkey and Distkey
 
-Example:
+Example: The average number of sessions per week per user
+```
+query = """
+    SELECT user_id, AVG(Events) AS AVG_sessionUserWeek
+    FROM (SELECT t.week AS Week,
+                 sp.user_id,
+                 COUNT(*) AS Events    
+        FROM factSongplay AS sp
+        JOIN dimTime as t
+        ON sp.start_time=t.start_time
+        GROUP BY 1, 2) sub
+    GROUP BY user_id    
+    ORDER BY AVG_sessionUserWeek DESC
+    LIMIT 5;
+"""
+pd.read_sql(query, conn_string).style.hide_index()
 ```
 
-```
+|user_id	|avg_sessionuserweek
+|-|-|
+|49	|8
+|97	|8
+|80	|7
+|44	|5
+|88 |5
+
 
 ## Web-links
 [Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)
