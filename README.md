@@ -146,7 +146,7 @@ DWH_IAM_ROLE_NAME=dwhRole
 
 * Create dimensions tables 
     * `dimUser`, `dimArtist`, `dimSong` with their PRIMARY KEY as SORTKEY
-    * `dimTime` with its PRIMARY KEY as SORTKEY AND as DISTKEY
+    * `dimTime` with its PRIMARY KEY as SORTKEY AND as DISTKEY  
         Example :
     ```
     time_table_create = ("""CREATE TABLE IF NOT EXISTS dimTime
@@ -226,7 +226,7 @@ I choose `artist_id` as SORTKEY for the factSongplay table because I need twice 
 
 ### ETL
 * Connect to the database in the cluster
-* COPY to load data in staging tables
+* COPY to load data in staging tables  
 Example:
 ```
 staging_songs_copy = (""" copy staging_songs 
@@ -237,7 +237,7 @@ staging_songs_copy = (""" copy staging_songs
 """).format(config.get('IAM_ROLE', 'ARN'))
 ```
 * INSERT data in fact and Dim tables
-Example: Query to insert data in `dimUser`
+Example: Query to insert data in `dimUser`  
 ```
 user_table_insert = ("""INSERT INTO dimUser(user_id, first_name, last_name, gender, level)
     SELECT DISTINCT userId AS user_id,
@@ -256,7 +256,7 @@ user_table_insert = ("""INSERT INTO dimUser(user_id, first_name, last_name, gend
 * Queries
     * Explre dimTables and FactTables
     * Queries for the analytic team
-    * Queries to play with Sortkey and Distkey
+    * Queries to play with Sortkey and Distkey  
 
 Example: The average number of sessions per week per user
 ```
@@ -286,13 +286,13 @@ pd.read_sql(query, conn_string).style.hide_index()
 
 
 ## Web-links
-[Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)
-[AWS Example of distribution Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/c_Distribution_examples.html)
-[Selecting SortedKey](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data.html)
-[AWS Example Selecting Sorted Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data-compare-sort-styles.html)
+[Table distribution by Blendo](https://www.blendo.co/amazon-redshift-guide-data-analyst/data-modeling-table-design/table-distribution-styles/)  
+[AWS Example of distribution Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/c_Distribution_examples.html)  
+[Selecting SortedKey](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data.html)  
+[AWS Example Selecting Sorted Key](https://docs.aws.amazon.com/fr_fr/redshift/latest/dg/t_Sorting_data-compare-sort-styles.html)  
 [How to load Data in Amazon Redshift](https://www.blendo.co/blog/how-to-load-data-from-mixpanel-to-redshift/
-)
-[Data Types](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)
-[Catch boto3 exceptions](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)
+)  
+[Data Types](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)  
+[Catch boto3 exceptions](https://www.oreilly.com/library/view/high-performance-mysql/9781449332471/ch04.html)  
 
 
